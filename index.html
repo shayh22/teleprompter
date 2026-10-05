@@ -596,7 +596,8 @@
       // Voice mode: scroll while the speaker is talking, pause on silence,
       // and let recognised words pull the text to the right place.
       const now = performance.now();
-      const speaking = now - lastSpeechAt < 1500;
+      sampleVoiceLevel(now);
+      const speaking = now - lastSpeechAt < (analyser ? 700 : 1500);
       const lineH = S.fontSize * S.lineHeight;
       const lead = pos - (voiceTarget ?? pos);   // how far we've scrolled past the last recognised word
       if (voiceTarget !== null && voiceTarget > pos + lineH * 0.5) {
@@ -628,11 +629,14 @@
   }
   const toggle = () => (playing ? pause() : startWithCountdown());
 
-  let countdownTimer = null;
-  function startWithCountdown() {
+  let countdownTimer = null, countdownDone = [];
+  // Runs the countdown (only from the top of the text), then calls onGo and starts scrolling.
+  function startWithCountdown(onGo) {
+    if (onGo) countdownDone.push(onGo);
     if (countdownTimer) return;
+    const go = () => { const cbs = countdownDone; countdownDone = []; cbs.forEach(f => f()); play(); };
     let n = S.countdownSec;
-    if (!n || pos > 0) { play(); return; }
+    if (!n || pos > 0) { go(); return; }
     const cd = $('countdown');
     cd.textContent = n; cd.classList.add('show');
     countdownTimer = setInterval(() => {
@@ -640,7 +644,7 @@
       if (n <= 0) {
         clearInterval(countdownTimer); countdownTimer = null;
         cd.classList.remove('show');
-        play();
+        go();
       } else cd.textContent = n;
     }, 1000);
   }
@@ -659,7 +663,7 @@
     pos = ratio * textEl.offsetHeight; render();
   }
 
-  async function openPrompter(withCamera) {
+  async function openPrompter(withCamera, autoStart = true) {
     if (!S.script.trim()) { toast('אין טקסט להקראה'); return; }
     buildText();
     pos = 0;
@@ -669,11 +673,12 @@
     showControls();
     requestWakeLock();
     if (withCamera) await startCamera();
-    startWithCountdown();
+    if (autoStart) startWithCountdown();
   }
   function closePrompter() {
     pause();
     if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; $('countdown').classList.remove('show'); }
+    countdownDone = [];
     stopVoice();
     if (recorder && recorder.state !== 'inactive') recorder.stop();
     stopCamera();
@@ -685,7 +690,7 @@
 
   // Single start button: the chosen mode decides camera / recording, the chip adds voice tracking
   $('startBtn').onclick = async () => {
-    await openPrompter(S.mode !== 'text');
+    await openPrompter(S.mode !== 'text', S.mode !== 'record');
     if (!prompter.classList.contains('active')) return;
     if (S.mode === 'record' && camStream) startRecording();
     if (S.voiceStart) startVoice();
@@ -794,6 +799,7 @@
     if (recorder && recorder.state === 'recording') stopRecording();
     if (camStream) camStream.getTracks().forEach(t => t.stop());
     camStream = null;
+    if (voiceOn && analyser && !ownMic) { stopLevelMeter(); startLevelMeter(); }
     $('camera').srcObject = null;
     prompter.classList.remove('with-camera');
     $('camBtn').classList.remove('on');
@@ -815,15 +821,20 @@
     } catch (err) { toast('שגיאה בהפעלת ההקלטה'); return; }
     recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
     recorder.onstop = showRecording;
-    recorder.start(1000);
-    recStart = Date.now();
-    $('recBtn').classList.add('rec'); $('recBtn').textContent = '⏹';
-    $('recPill').classList.add('show');
-    recTimer = setInterval(() => {
-      const s = Math.floor((Date.now() - recStart) / 1000);
-      $('recTime').textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
-    }, 500);
-    if (!playing) startWithCountdown();
+    const rec = recorder;
+    const begin = () => {
+      if (recorder !== rec || rec.state !== 'inactive' || !camStream) return;   // cancelled meanwhile
+      rec.start(1000);
+      recStart = Date.now();
+      $('recBtn').classList.add('rec'); $('recBtn').textContent = '⏹';
+      $('recPill').classList.add('show');
+      recTimer = setInterval(() => {
+        const s = Math.floor((Date.now() - recStart) / 1000);
+        $('recTime').textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+      }, 500);
+    };
+    // Recording starts together with the text, after the countdown — not before it.
+    if (playing) begin(); else startWithCountdown(begin);
   }
   function stopRecording() {
     if (recorder && recorder.state !== 'inactive') recorder.stop();
@@ -858,8 +869,45 @@
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   let recog = null, voiceOn = false, voiceIndex = 0, voiceTarget = null, lastSpeechAt = -Infinity, lastMatchAt = -Infinity;
 
+  // ---- Voice activity: measure microphone volume directly (instant, works even when
+  // speech recognition is slow or unavailable). Recognition is only used to align words.
+  let audioCtx = null, analyser = null, levelBuf = null, micStream = null, ownMic = false, noiseFloor = 0.005;
+  async function startLevelMeter() {
+    try {
+      let stream = camStream && camStream.getAudioTracks().length ? camStream : null;
+      ownMic = !stream;
+      if (!stream) stream = micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      if (!voiceOn) { stopLevelMeter(); return false; }
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') await audioCtx.resume().catch(() => {});
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 1024;
+      audioCtx.createMediaStreamSource(stream).connect(analyser);
+      levelBuf = new Float32Array(analyser.fftSize);
+      noiseFloor = 0.005;
+      return true;
+    } catch (e) { console.warn('level meter unavailable', e); stopLevelMeter(); return false; }
+  }
+  function stopLevelMeter() {
+    if (audioCtx) audioCtx.close().catch(() => {});
+    audioCtx = analyser = null;
+    if (ownMic && micStream) micStream.getTracks().forEach(t => t.stop());
+    micStream = null; ownMic = false;
+  }
+  function sampleVoiceLevel(now) {
+    if (!analyser) return;
+    analyser.getFloatTimeDomainData(levelBuf);
+    let sum = 0;
+    for (let i = 0; i < levelBuf.length; i++) sum += levelBuf[i] * levelBuf[i];
+    const rms = Math.sqrt(sum / levelBuf.length);
+    // background noise estimate: drops fast (gaps between words), rises slowly
+    noiseFloor = rms < noiseFloor ? noiseFloor * 0.9 + rms * 0.1 : noiseFloor * 0.998 + rms * 0.002;
+    if (rms > Math.max(noiseFloor * 2.5, 0.01)) lastSpeechAt = now;
+  }
+
   function startVoice() {
-    if (!SR) { toast('מעקב קולי אינו נתמך בדפדפן זה (נסו Chrome או Safari)'); return; }
+    const hasMic = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    if (!SR && !hasMic) { toast('מעקב קולי אינו נתמך בדפדפן זה'); return; }
     voiceOn = true;
     // start from the word nearest the reading line
     voiceIndex = wordIndexAtGuide();
@@ -867,6 +915,8 @@
     lastSpeechAt = -Infinity; lastMatchAt = -Infinity;
     $('voiceBtn').classList.add('on');
     $('voicePill').classList.add('show');
+    if (hasMic) startLevelMeter();
+    if (!SR) { if (!playing && !countdownTimer) play(); return; }
     recog = new SR();
     recog.lang = S.lang;
     recog.continuous = true;
@@ -887,6 +937,7 @@
     $('voiceBtn').classList.remove('on');
     $('voicePill').classList.remove('show');
     if (recog) { recog.onend = null; try { recog.stop(); } catch (e) {} recog = null; }
+    stopLevelMeter();
   }
 
   function wordIndexAtGuide() {
