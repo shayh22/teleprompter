@@ -289,8 +289,7 @@
     <div class="start-row">
       <div class="seg" id="modeSeg">
         <button data-value="text">📄 טקסט</button>
-        <button data-value="camera">📷 מצלמה</button>
-        <button data-value="record">⏺ הקלטה</button>
+        <button data-value="record">🎥 הקלטה</button>
       </div>
       <button class="chip" id="voiceChip" title="הטקסט גולל כשאתם מדברים ונעצר כשאתם שותקים">🎤 קולי</button>
     </div>
@@ -407,7 +406,6 @@
     <video id="recPreview" controls playsinline></video>
     <div class="actions" style="margin-top:12px">
       <a class="btn primary" id="recDownload" download>⬇ הורדה</a>
-      <button class="btn" id="recShare" style="display:none">שיתוף</button>
       <button class="btn" id="recClose">סגירה</button>
     </div>
   </div>
@@ -422,7 +420,7 @@
 
   // ---------- Settings persistence ----------
   const DEFAULTS = {
-    script: 'ברוכים הבאים לטלפרומפטר החכם!\n\nהדביקו כאן את הטקסט שלכם, בחרו מהירות וגודל גופן, ולחצו על "התחל".\n\nמתחת לטקסט בוחרים מצב: טקסט בלבד, מצלמה או הקלטה, ואפשר להוסיף מעקב קולי — והטקסט יתקדם בקצב שבו אתם מדברים.\n\nבהצלחה!',
+    script: 'ברוכים הבאים לטלפרומפטר החכם!\n\nהדביקו כאן את הטקסט שלכם, בחרו מהירות וגודל גופן, ולחצו על "התחל".\n\nמתחת לטקסט בוחרים מצב: טקסט בלבד או הקלטה עם מצלמה, ואפשר להוסיף מעקב קולי — והטקסט יתקדם בקצב שבו אתם מדברים.\n\nבהצלחה!',
     speed: 4, fontSize: 56, lineHeight: 1.5, textWidth: 90, guidePos: 35,
     countdownSec: 3, theme: 'dark', align: 'right', lang: 'he-IL', overlay: 0.55,
     mirrorX: false, mirrorY: false, dimRead: true, mode: 'text', voiceStart: false
@@ -482,6 +480,7 @@
   }
   bindSeg('themeSeg', 'theme', () => { applyStyle(); updateSummary(); });
   bindSeg('alignSeg', 'align', applyStyle);
+  if (S.mode !== 'record') S.mode = 'text';   // the old camera-preview-only mode was merged away
   bindSeg('modeSeg', 'mode', updateStartBtn);
 
   const voiceChip = $('voiceChip');
@@ -490,7 +489,7 @@
 
   function updateStartBtn() {
     const b = $('startBtn');
-    b.textContent = { text: '▶ התחל', camera: '▶ התחל עם מצלמה', record: '⏺ התחל הקלטה' }[S.mode] + (S.voiceStart ? ' · 🎤' : '');
+    b.textContent = { text: '▶ התחל', record: '⏺ התחל הקלטה' }[S.mode] + (S.voiceStart ? ' · 🎤' : '');
     b.classList.toggle('rec', S.mode === 'record');
   }
   function updateSummary() {
@@ -690,7 +689,7 @@
 
   // Single start button: the chosen mode decides camera / recording, the chip adds voice tracking
   $('startBtn').onclick = async () => {
-    await openPrompter(S.mode !== 'text', S.mode !== 'record');
+    await openPrompter(S.mode === 'record', S.mode !== 'record');
     if (!prompter.classList.contains('active')) return;
     if (S.mode === 'record' && camStream) startRecording();
     if (S.voiceStart) startVoice();
@@ -855,12 +854,6 @@
     $('recPreview').src = recUrl;
     $('recDownload').href = recUrl;
     $('recDownload').download = name;
-    const file = new File([blob], name, { type });
-    const share = $('recShare');
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      share.style.display = '';
-      share.onclick = () => navigator.share({ files: [file], title: 'הקלטת טלפרומפטר' }).catch(() => {});
-    } else share.style.display = 'none';
     $('recDialog').classList.add('show');
   }
   $('recClose').onclick = () => { $('recDialog').classList.remove('show'); $('recPreview').pause(); };
