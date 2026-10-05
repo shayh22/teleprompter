@@ -289,7 +289,7 @@
       <kbd>Esc</kbd> יציאה<br>
       <strong>הקלטה:</strong> "הקלטה עם טלפרומפטר" מפעיל מצלמה, ספירה לאחור, הקלטה וגלילה בלחיצה אחת. בסיום לוחצים ⏹ ומורידים או משתפים את הסרטון.<br>
       <strong>בטלפון:</strong> הקשה על המסך = הפעלה/עצירה, גרירה = גלילה ידנית.<br>
-      <strong>מעקב קולי:</strong> הטקסט מתקדם לפי מה שאתם אומרים (נתמך ב-Chrome וב-Safari).
+      <strong>מעקב קולי:</strong> הטקסט גולל כשאתם מדברים ונעצר כשאתם שותקים, ומתיישר לפי המילים שזוהו (נתמך ב-Chrome וב-Safari).
     </p>
   </section>
 </main>
@@ -491,9 +491,20 @@
     if (!voiceOn) {
       pos += pxPerSec() * dt;
       if (pos >= maxPos()) { pos = maxPos(); render(); pause(); return; }
-    } else if (voiceTarget !== null) {
-      // smooth approach to the voice-tracked target
-      pos += (voiceTarget - pos) * Math.min(1, dt * 4);
+    } else {
+      // Voice mode: scroll while the speaker is talking, pause on silence,
+      // and let recognised words pull the text to the right place.
+      const now = performance.now();
+      const speaking = now - lastSpeechAt < 1500;
+      const lineH = S.fontSize * S.lineHeight;
+      const lead = pos - (voiceTarget ?? pos);   // how far we've scrolled past the last recognised word
+      if (voiceTarget !== null && voiceTarget > pos + lineH * 0.5) {
+        pos += (voiceTarget - pos) * Math.min(1, dt * 4);   // speaker is ahead: catch up
+      } else if (speaking && (now - lastMatchAt > 6000 || lead < lineH * 2)) {
+        pos += pxPerSec() * dt;   // no more than ~2 lines past the last matched word
+      }
+      $('voicePill').textContent = speaking ? '🗣️ שומע' : '🎤 מאזין';
+      if (pos >= maxPos()) { pos = maxPos(); render(); pause(); return; }
     }
     render();
     rafId = requestAnimationFrame(tick);
@@ -741,7 +752,7 @@
 
   // ---------- Voice tracking ----------
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let recog = null, voiceOn = false, voiceIndex = 0, voiceTarget = null;
+  let recog = null, voiceOn = false, voiceIndex = 0, voiceTarget = null, lastSpeechAt = -Infinity, lastMatchAt = -Infinity;
 
   function startVoice() {
     if (!SR) { toast('מעקב קולי אינו נתמך בדפדפן זה (נסו Chrome או Safari)'); return; }
@@ -749,6 +760,7 @@
     // start from the word nearest the reading line
     voiceIndex = wordIndexAtGuide();
     voiceTarget = pos;
+    lastSpeechAt = -Infinity; lastMatchAt = -Infinity;
     $('voiceBtn').classList.add('on');
     $('voicePill').classList.add('show');
     recog = new SR();
@@ -756,6 +768,7 @@
     recog.continuous = true;
     recog.interimResults = true;
     recog.onresult = onSpeech;
+    recog.onspeechstart = () => { lastSpeechAt = performance.now(); };
     recog.onerror = e => {
       if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
         toast('אין הרשאה למיקרופון'); stopVoice();
@@ -780,6 +793,7 @@
   }
 
   function onSpeech(e) {
+    lastSpeechAt = performance.now();
     // Take the last few spoken words and locate them in the script near the current position.
     let transcript = '';
     for (let i = e.resultIndex; i < e.results.length; i++) transcript += ' ' + e.results[i][0].transcript;
@@ -806,6 +820,7 @@
       if (S.dimRead) for (let i = 0; i < voiceIndex && i < wordEls.length; i++) wordEls[i].classList.add('read');
       const el = wordEls[Math.min(voiceIndex, wordEls.length - 1)];
       if (el) voiceTarget = Math.max(0, wordTop(el));
+      lastMatchAt = performance.now();
     }
   }
 
