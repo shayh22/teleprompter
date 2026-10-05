@@ -96,8 +96,12 @@
   #prompter.active { display: block; }
   #camera {
     position: absolute; inset: 0; width: 100%; height: 100%;
-    object-fit: cover; transform: scaleX(-1); display: none;
+    object-fit: cover; display: none;
   }
+  #camera.front { transform: scaleX(-1); }
+  #prompter.with-camera #text { text-shadow: 2px 2px 4px #000, 0 0 12px rgba(0,0,0,.8); }
+  #flipCamBtn { display: none; }
+  #prompter.with-camera #flipCamBtn { display: inline-block; }
   #prompter.with-camera #camera { display: block; }
   #prompter.with-camera #scroller { background: rgba(0,0,0,var(--overlay, .55)); }
   #scroller {
@@ -264,6 +268,7 @@
     <div class="actions">
       <button class="btn primary big" id="startBtn">▶ התחל הקראה</button>
       <button class="btn big" id="startCamBtn">🎥 התחל עם מצלמה</button>
+      <button class="btn big" id="startRecBtn">🎬 הקלטה עם טלפרומפטר</button>
       <button class="btn big" id="installBtn">📲 התקנת האפליקציה</button>
     </div>
     <p class="hint" style="margin-top:14px">
@@ -276,6 +281,7 @@
       <kbd>V</kbd> מעקב קולי ·
       <kbd>R</kbd> הקלטה ·
       <kbd>Esc</kbd> יציאה<br>
+      <strong>הקלטה:</strong> "הקלטה עם טלפרומפטר" מפעיל מצלמה, ספירה לאחור, הקלטה וגלילה בלחיצה אחת. בסיום לוחצים ⏹ ומורידים או משתפים את הסרטון.<br>
       <strong>בטלפון:</strong> הקשה על המסך = הפעלה/עצירה, גרירה = גלילה ידנית.<br>
       <strong>מעקב קולי:</strong> הטקסט מתקדם לפי מה שאתם אומרים (נתמך ב-Chrome וב-Safari).
     </p>
@@ -305,6 +311,7 @@
     <button id="voiceBtn" title="מעקב קולי (V)">🎤</button>
     <button id="mirrorBtn" title="מראה (M)">⇋</button>
     <button id="camBtn" title="מצלמה">📷</button>
+    <button id="flipCamBtn" title="החלפת מצלמה קדמית/אחורית">🔄</button>
     <button id="recBtn" title="הקלטה (R)">⏺</button>
     <button id="fullBtn" title="מסך מלא">⛶</button>
   </div>
@@ -560,6 +567,8 @@
 
   $('startBtn').onclick = () => openPrompter(false);
   $('startCamBtn').onclick = () => openPrompter(true);
+  // One tap: camera + countdown + recording + scrolling together
+  $('startRecBtn').onclick = async () => { await openPrompter(true); if (camStream) startRecording(); };
   $('exitBtn').onclick = closePrompter;
   $('playBtn').onclick = e => { e.stopPropagation(); toggle(); };
   $('restartBtn').onclick = () => { pos = 0; voiceIndex = 0; voiceTarget = 0; wordEls.forEach(w => w.classList.remove('read')); render(); };
@@ -572,6 +581,12 @@
     else toast('מסך מלא אינו נתמך במכשיר זה');
   };
   $('camBtn').onclick = () => (camStream ? stopCamera() : startCamera());
+  $('flipCamBtn').onclick = async () => {
+    if (recorder && recorder.state === 'recording') { toast('אי אפשר להחליף מצלמה בזמן הקלטה'); return; }
+    facing = facing === 'user' ? 'environment' : 'user';
+    stopCamera();
+    if (!(await startCamera())) { facing = facing === 'user' ? 'environment' : 'user'; startCamera(); }
+  };
   $('voiceBtn').onclick = () => (voiceOn ? stopVoice() : startVoice());
   $('recBtn').onclick = () => (recorder && recorder.state === 'recording' ? stopRecording() : startRecording());
   controls.addEventListener('click', e => e.stopPropagation());
@@ -633,17 +648,18 @@
   window.addEventListener('resize', () => { if (prompter.classList.contains('active')) render(); });
 
   // ---------- Camera ----------
-  let camStream = null;
+  let camStream = null, facing = 'user';
   async function startCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       toast('המצלמה דורשת חיבור מאובטח (HTTPS) ודפדפן תומך'); return false;
     }
     try {
       camStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1080 } },
+        video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: true
       });
       $('camera').srcObject = camStream;
+      $('camera').classList.toggle('front', facing === 'user');
       prompter.classList.add('with-camera');
       $('camBtn').classList.add('on');
       return true;
