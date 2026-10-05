@@ -22,12 +22,20 @@
   :root {
     --primary: #007bff;
     --primary-dark: #0062cc;
-    --bg: #f5f5f5;
+    --primary-soft: rgba(0,123,255,.12);
+    --bg: #f2f4f7;
     --card: #ffffff;
-    --text: #222;
-    --muted: #666;
-    --border: #ddd;
+    --text: #1c1f24;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --field: #f5f6f8;
     --danger: #ff3b30;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --card: #1a1d23; --text: #e8eaed; --muted: #9aa0a6;
+      --border: #2a2e36; --field: #23272e; --primary-soft: rgba(0,123,255,.22);
+    }
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
@@ -35,63 +43,125 @@
     font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
+    -webkit-tap-highlight-color: transparent;
   }
-  button, select, input, textarea { font: inherit; }
+  button, select, input, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
 
   /* ---------- Editor screen ---------- */
   #editor {
-    max-width: 900px;
+    max-width: 760px;
     margin: 0 auto;
-    padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+    padding: calc(12px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; gap: 12px;
   }
-  header.app-header {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
-  }
-  header.app-header img { width: 40px; height: 40px; border-radius: 10px; }
-  header.app-header h1 { font-size: 1.4rem; margin: 0; }
+  .top { display: flex; align-items: center; gap: 10px; }
+  .top img { width: 32px; height: 32px; border-radius: 8px; }
+  .top h1 { font-size: 1.15rem; margin: 0; font-weight: 700; flex: 1; }
   .card {
     background: var(--card);
-    border-radius: 14px;
-    padding: 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.08);
-    margin-bottom: 14px;
-  }
-  textarea#script {
-    width: 100%;
-    min-height: 260px;
-    resize: vertical;
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px;
-    font-size: 1.05rem;
-    line-height: 1.6;
+    border-radius: 16px;
+    padding: 14px;
   }
-  .row-between { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .muted { color: var(--muted); font-size: .9rem; }
-  .settings {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 14px 20px;
+  .icon-btn {
+    border: none; background: transparent; border-radius: 10px;
+    width: 36px; height: 36px; display: inline-grid; place-items: center; font-size: 1.05rem;
   }
-  .settings label { display: flex; flex-direction: column; gap: 6px; font-size: .95rem; }
-  .settings .inline { flex-direction: row; align-items: center; gap: 8px; }
-  .settings input[type=range] { width: 100%; }
-  .settings select { padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: #fff; }
-  .val { color: var(--primary); font-weight: 600; }
-  .btn {
-    border: none; border-radius: 10px; padding: 10px 16px;
-    background: #e9ecef; color: var(--text); cursor: pointer;
+  .icon-btn:hover { background: var(--field); }
+  .pill-btn {
+    border: 1px solid var(--border); background: var(--card); border-radius: 999px;
+    padding: 6px 12px; font-size: .85rem;
   }
-  .btn:hover { filter: brightness(.96); }
-  .btn.primary { background: var(--primary); color: #fff; }
-  .btn.primary:hover { background: var(--primary-dark); }
-  .btn.big { font-size: 1.15rem; padding: 14px 22px; }
-  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
   #installBtn { display: none; }
-  .hint { font-size: .85rem; color: var(--muted); line-height: 1.5; }
-  .hint kbd {
-    background: #eee; border: 1px solid #ccc; border-radius: 4px; padding: 0 5px; font-size: .8rem;
+
+  /* script */
+  .script-card { padding: 0; overflow: hidden; }
+  textarea#script {
+    display: block; width: 100%; min-height: 34vh; resize: vertical;
+    border: none; outline: none; background: transparent;
+    padding: 14px 16px; font-size: 1.05rem; line-height: 1.65;
   }
+  .script-bar {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 8px 4px 12px; border-top: 1px solid var(--border);
+  }
+  .script-bar .muted { flex: 1; }
+  .muted { color: var(--muted); font-size: .85rem; }
+
+  /* start */
+  .start { display: flex; flex-direction: column; gap: 10px; }
+  .start-row { display: flex; gap: 8px; align-items: center; }
+  .seg {
+    display: flex; background: var(--field); border-radius: 12px; padding: 3px; gap: 2px; flex: 1;
+  }
+  .seg button {
+    flex: 1; border: none; background: transparent; border-radius: 9px;
+    padding: 8px 6px; font-size: .9rem; color: var(--muted); white-space: nowrap;
+  }
+  .seg button.on { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .chip {
+    border: 1px solid var(--border); background: var(--card); border-radius: 12px;
+    padding: 8px 12px; font-size: .9rem; white-space: nowrap; color: var(--muted);
+  }
+  .chip.on { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); font-weight: 600; }
+  #startBtn {
+    border: none; border-radius: 14px; padding: 14px; width: 100%;
+    background: var(--primary); color: #fff; font-size: 1.1rem; font-weight: 700;
+    box-shadow: 0 6px 16px rgba(0,123,255,.3);
+  }
+  #startBtn:active { transform: scale(.99); }
+  #startBtn.rec { background: var(--danger); box-shadow: 0 6px 16px rgba(255,59,48,.3); }
+
+  /* settings */
+  details.card { padding: 0; }
+  details.card > summary {
+    list-style: none; cursor: pointer; padding: 12px 14px;
+    display: flex; align-items: center; gap: 8px; font-weight: 600;
+  }
+  details.card > summary::-webkit-details-marker { display: none; }
+  details.card > summary .muted { font-weight: 400; flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  details.card > summary::after { content: "⌄"; color: var(--muted); transition: transform .2s; }
+  details.card[open] > summary::after { transform: rotate(180deg); }
+  .settings-body { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 14px; }
+  .group-title { font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 4px 16px; }
+  .field { display: flex; flex-direction: column; gap: 2px; font-size: .9rem; }
+  .field .head { display: flex; justify-content: space-between; }
+  .val { color: var(--primary); font-weight: 600; font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: var(--primary); margin: 4px 0; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: .9rem; min-height: 38px; }
+  .row select {
+    border: 1px solid var(--border); background: var(--field); border-radius: 10px; padding: 6px 10px;
+  }
+  .swatches { display: flex; gap: 8px; }
+  .swatches button {
+    width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--border);
+    font-weight: 800; font-size: .8rem; display: grid; place-items: center;
+  }
+  .swatches button.on { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+  .seg.small { flex: 0 0 auto; }
+  .seg.small button { padding: 5px 10px; }
+  /* switch */
+  .switch { position: relative; width: 44px; height: 26px; flex: 0 0 auto; }
+  .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .switch span {
+    position: absolute; inset: 0; background: var(--border); border-radius: 999px; transition: background .2s;
+  }
+  .switch span::after {
+    content: ""; position: absolute; top: 3px; right: 3px; width: 20px; height: 20px;
+    background: #fff; border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2);
+  }
+  .switch input:checked + span { background: var(--primary); }
+  .switch input:checked + span::after { transform: translateX(-18px); }
+  .hint { font-size: .8rem; color: var(--muted); line-height: 1.7; margin: 0; }
+  .hint kbd {
+    background: var(--field); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; font-size: .75rem;
+  }
+  /* shared by the recording dialog */
+  .btn { border: none; border-radius: 10px; padding: 10px 16px; background: var(--field); text-decoration: none; display: inline-block; }
+  .btn.primary { background: var(--primary); color: #fff; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
   /* ---------- Prompter screen ---------- */
   #prompter {
@@ -199,99 +269,106 @@
 
 <!-- ================= Editor ================= -->
 <main id="editor">
-  <header class="app-header">
+  <header class="top">
     <img src="icon-192.png" alt="">
     <h1>טלפרומפטר חכם</h1>
+    <button class="pill-btn" id="installBtn">📲 התקנה</button>
   </header>
 
-  <section class="card">
-    <div class="row-between" style="margin-bottom:8px">
-      <strong>הטקסט שלך</strong>
-      <span class="muted" id="stats"></span>
-    </div>
+  <section class="card script-card">
     <textarea id="script" placeholder="הדביקו או כתבו כאן את הטקסט להקראה..."></textarea>
-    <div class="actions" style="margin-top:10px">
-      <button class="btn" id="loadFileBtn">📂 טעינת קובץ טקסט</button>
+    <div class="script-bar">
+      <span class="muted" id="stats"></span>
+      <button class="icon-btn" id="loadFileBtn" title="טעינת קובץ טקסט">📂</button>
       <input type="file" id="fileInput" accept=".txt,text/plain" hidden>
-      <button class="btn" id="clearBtn">🗑️ ניקוי</button>
+      <button class="icon-btn" id="clearBtn" title="ניקוי הטקסט">🗑️</button>
     </div>
   </section>
 
-  <section class="card">
-    <strong style="display:block;margin-bottom:12px">הגדרות</strong>
-    <div class="settings">
-      <label>מהירות גלילה: <span class="val" id="speedVal"></span>
-        <input type="range" id="speed" min="1" max="20" step="0.5">
-      </label>
-      <label>גודל גופן: <span class="val" id="fontVal"></span>
-        <input type="range" id="fontSize" min="24" max="140" step="2">
-      </label>
-      <label>מרווח שורות: <span class="val" id="lineVal"></span>
-        <input type="range" id="lineHeight" min="1" max="2.5" step="0.1">
-      </label>
-      <label>רוחב טקסט: <span class="val" id="widthVal"></span>
-        <input type="range" id="textWidth" min="40" max="100" step="5">
-      </label>
-      <label>מיקום קו הקריאה: <span class="val" id="guideVal"></span>
-        <input type="range" id="guidePos" min="15" max="70" step="5">
-      </label>
-      <label>ספירה לאחור (שניות): <span class="val" id="countVal"></span>
-        <input type="range" id="countdownSec" min="0" max="10" step="1">
-      </label>
-      <label>ערכת צבעים
-        <select id="theme">
-          <option value="dark">לבן על שחור</option>
-          <option value="yellow">צהוב על שחור</option>
-          <option value="green">ירוק על שחור</option>
-          <option value="light">שחור על לבן</option>
-        </select>
-      </label>
-      <label>יישור טקסט
-        <select id="align">
-          <option value="right">ימין</option>
-          <option value="center">מרכז</option>
-          <option value="left">שמאל</option>
-        </select>
-      </label>
-      <label>שפת זיהוי קולי
-        <select id="lang">
-          <option value="he-IL">עברית</option>
-          <option value="en-US">English</option>
-          <option value="ar-IL">العربية</option>
-          <option value="ru-RU">Русский</option>
-        </select>
-      </label>
-      <label>שקיפות רקע במצב מצלמה: <span class="val" id="overlayVal"></span>
-        <input type="range" id="overlay" min="0" max="0.9" step="0.05">
-      </label>
-      <label class="inline"><input type="checkbox" id="mirrorX"> היפוך אופקי (מראה למזכוכית)</label>
-      <label class="inline"><input type="checkbox" id="mirrorY"> היפוך אנכי</label>
-      <label class="inline"><input type="checkbox" id="dimRead"> עמעום מילים שנקראו (מצב קולי)</label>
+  <section class="start">
+    <div class="start-row">
+      <div class="seg" id="modeSeg">
+        <button data-value="text">📄 טקסט</button>
+        <button data-value="camera">📷 מצלמה</button>
+        <button data-value="record">⏺ הקלטה</button>
+      </div>
+      <button class="chip" id="voiceChip" title="הטקסט גולל כשאתם מדברים ונעצר כשאתם שותקים">🎤 קולי</button>
     </div>
+    <button id="startBtn">▶ התחל</button>
   </section>
 
-  <section class="card">
-    <div class="actions">
-      <button class="btn primary big" id="startBtn">▶ התחל הקראה</button>
-      <button class="btn big" id="startCamBtn">🎥 התחל עם מצלמה</button>
-      <button class="btn big" id="startRecBtn">🎬 הקלטה עם טלפרומפטר</button>
-      <button class="btn big" id="installBtn">📲 התקנת האפליקציה</button>
+  <details class="card" id="settingsBox">
+    <summary>⚙️ הגדרות <span class="muted" id="settingsSummary"></span></summary>
+    <div class="settings-body">
+      <div>
+        <div class="group-title">גלילה</div>
+        <div class="grid">
+          <label class="field"><span class="head">מהירות <span class="val" id="speedVal"></span></span>
+            <input type="range" id="speed" min="1" max="20" step="0.5"></label>
+          <label class="field"><span class="head">ספירה לאחור <span class="val" id="countVal"></span></span>
+            <input type="range" id="countdownSec" min="0" max="10" step="1"></label>
+          <label class="field"><span class="head">קו קריאה <span class="val" id="guideVal"></span></span>
+            <input type="range" id="guidePos" min="15" max="70" step="5"></label>
+        </div>
+      </div>
+
+      <div>
+        <div class="group-title">טקסט</div>
+        <div class="grid">
+          <label class="field"><span class="head">גודל גופן <span class="val" id="fontVal"></span></span>
+            <input type="range" id="fontSize" min="24" max="140" step="2"></label>
+          <label class="field"><span class="head">מרווח שורות <span class="val" id="lineVal"></span></span>
+            <input type="range" id="lineHeight" min="1" max="2.5" step="0.1"></label>
+          <label class="field"><span class="head">רוחב <span class="val" id="widthVal"></span></span>
+            <input type="range" id="textWidth" min="40" max="100" step="5"></label>
+        </div>
+        <div class="row">צבעים
+          <div class="swatches" id="themeSeg">
+            <button data-value="dark" title="לבן על שחור" style="background:#000;color:#fff">א</button>
+            <button data-value="yellow" title="צהוב על שחור" style="background:#000;color:#ffd60a">א</button>
+            <button data-value="green" title="ירוק על שחור" style="background:#000;color:#30d158">א</button>
+            <button data-value="light" title="שחור על לבן" style="background:#fff;color:#111">א</button>
+          </div>
+        </div>
+        <div class="row">יישור
+          <div class="seg small" id="alignSeg">
+            <button data-value="right" title="ימין">⇥</button>
+            <button data-value="center" title="מרכז">↔</button>
+            <button data-value="left" title="שמאל">⇤</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="group-title">תצוגה</div>
+        <div class="row">היפוך אופקי (מראת טלפרומפטר)
+          <label class="switch"><input type="checkbox" id="mirrorX"><span></span></label></div>
+        <div class="row">היפוך אנכי
+          <label class="switch"><input type="checkbox" id="mirrorY"><span></span></label></div>
+        <label class="field"><span class="head">שקיפות רקע מעל המצלמה <span class="val" id="overlayVal"></span></span>
+          <input type="range" id="overlay" min="0" max="0.9" step="0.05"></label>
+      </div>
+
+      <div>
+        <div class="group-title">מעקב קולי</div>
+        <div class="row">שפת זיהוי
+          <select id="lang">
+            <option value="he-IL">עברית</option>
+            <option value="en-US">English</option>
+            <option value="ar-IL">العربية</option>
+            <option value="ru-RU">Русский</option>
+          </select></div>
+        <div class="row">עמעום מילים שנקראו
+          <label class="switch"><input type="checkbox" id="dimRead"><span></span></label></div>
+      </div>
+
+      <p class="hint">
+        <strong>בטלפון:</strong> הקשה = עצירה/המשך · גרירה = גלילה ידנית<br>
+        <strong>מקלדת:</strong> <kbd>רווח</kbd> עצירה · <kbd>↑</kbd><kbd>↓</kbd> מהירות · <kbd>←</kbd><kbd>→</kbd> קפיצה ·
+        <kbd>+</kbd><kbd>-</kbd> גופן · <kbd>M</kbd> מראה · <kbd>V</kbd> קולי · <kbd>R</kbd> הקלטה · <kbd>Esc</kbd> יציאה
+      </p>
     </div>
-    <p class="hint" style="margin-top:14px">
-      <strong>קיצורי מקלדת:</strong>
-      <kbd>רווח</kbd> הפעלה/עצירה ·
-      <kbd>↑</kbd>/<kbd>↓</kbd> מהירות ·
-      <kbd>←</kbd>/<kbd>→</kbd> קפיצה ·
-      <kbd>+</kbd>/<kbd>-</kbd> גודל גופן ·
-      <kbd>M</kbd> מראה ·
-      <kbd>V</kbd> מעקב קולי ·
-      <kbd>R</kbd> הקלטה ·
-      <kbd>Esc</kbd> יציאה<br>
-      <strong>הקלטה:</strong> "הקלטה עם טלפרומפטר" מפעיל מצלמה, ספירה לאחור, הקלטה וגלילה בלחיצה אחת. בסיום לוחצים ⏹ ומורידים או משתפים את הסרטון.<br>
-      <strong>בטלפון:</strong> הקשה על המסך = הפעלה/עצירה, גרירה = גלילה ידנית.<br>
-      <strong>מעקב קולי:</strong> הטקסט גולל כשאתם מדברים ונעצר כשאתם שותקים, ומתיישר לפי המילים שזוהו (נתמך ב-Chrome וב-Safari).
-    </p>
-  </section>
+  </details>
 </main>
 
 <!-- ================= Prompter ================= -->
@@ -345,10 +422,10 @@
 
   // ---------- Settings persistence ----------
   const DEFAULTS = {
-    script: 'ברוכים הבאים לטלפרומפטר החכם!\n\nהדביקו כאן את הטקסט שלכם, בחרו מהירות וגודל גופן, ולחצו על "התחל הקראה".\n\nאפשר גם להפעיל את המצלמה ולהקליט את עצמכם תוך כדי הקראה, או להפעיל מעקב קולי — והטקסט יתקדם בדיוק בקצב שבו אתם מדברים.\n\nבהצלחה!',
+    script: 'ברוכים הבאים לטלפרומפטר החכם!\n\nהדביקו כאן את הטקסט שלכם, בחרו מהירות וגודל גופן, ולחצו על "התחל".\n\nמתחת לטקסט בוחרים מצב: טקסט בלבד, מצלמה או הקלטה, ואפשר להוסיף מעקב קולי — והטקסט יתקדם בקצב שבו אתם מדברים.\n\nבהצלחה!',
     speed: 4, fontSize: 56, lineHeight: 1.5, textWidth: 90, guidePos: 35,
     countdownSec: 3, theme: 'dark', align: 'right', lang: 'he-IL', overlay: 0.55,
-    mirrorX: false, mirrorY: false, dimRead: true
+    mirrorX: false, mirrorY: false, dimRead: true, mode: 'text', voiceStart: false
   };
   const STORE_KEY = 'teleprompter-settings-v1';
   let S = { ...DEFAULTS };
@@ -390,19 +467,43 @@
     el.addEventListener('input', () => {
       S[key] = parseFloat(el.value);
       $(labelId).textContent = fmt(S[key]);
-      save(); applyStyle();
+      save(); applyStyle(); updateSummary();
     });
   });
-  ['theme', 'align', 'lang'].forEach(key => {
-    const el = $(key);
-    el.value = S[key];
-    el.addEventListener('change', () => { S[key] = el.value; save(); applyStyle(); });
-  });
+  $('lang').value = S.lang;
+  $('lang').addEventListener('change', () => { S.lang = $('lang').value; save(); updateSummary(); });
+
+  // Segmented controls / swatches: buttons with data-value
+  function bindSeg(id, key, onChange) {
+    const btns = [...$(id).querySelectorAll('button')];
+    const mark = () => btns.forEach(b => b.classList.toggle('on', b.dataset.value === S[key]));
+    btns.forEach(b => b.addEventListener('click', () => { S[key] = b.dataset.value; save(); mark(); onChange && onChange(); }));
+    mark();
+  }
+  bindSeg('themeSeg', 'theme', () => { applyStyle(); updateSummary(); });
+  bindSeg('alignSeg', 'align', applyStyle);
+  bindSeg('modeSeg', 'mode', updateStartBtn);
+
+  const voiceChip = $('voiceChip');
+  voiceChip.classList.toggle('on', S.voiceStart);
+  voiceChip.onclick = () => { S.voiceStart = !S.voiceStart; voiceChip.classList.toggle('on', S.voiceStart); save(); updateStartBtn(); };
+
+  function updateStartBtn() {
+    const b = $('startBtn');
+    b.textContent = { text: '▶ התחל', camera: '▶ התחל עם מצלמה', record: '⏺ התחל הקלטה' }[S.mode] + (S.voiceStart ? ' · 🎤' : '');
+    b.classList.toggle('rec', S.mode === 'record');
+  }
+  function updateSummary() {
+    const themeName = { dark: 'לבן/שחור', yellow: 'צהוב', green: 'ירוק', light: 'שחור/לבן' }[S.theme];
+    $('settingsSummary').textContent = `מהירות ${S.speed} · ${S.fontSize}px · ${themeName}${S.mirrorX ? ' · מראה' : ''}`;
+  }
+  updateStartBtn();
   ['mirrorX', 'mirrorY', 'dimRead'].forEach(key => {
     const el = $(key);
     el.checked = S[key];
-    el.addEventListener('change', () => { S[key] = el.checked; save(); applyStyle(); });
+    el.addEventListener('change', () => { S[key] = el.checked; save(); applyStyle(); updateSummary(); });
   });
+  updateSummary();
 
   $('clearBtn').onclick = () => {
     if (confirm('למחוק את כל הטקסט?')) { script.value = ''; S.script = ''; save(); updateStats(); }
@@ -548,13 +649,13 @@
     S.speed = Math.max(1, Math.min(20, Math.round(v * 2) / 2));
     $('speed').value = S.speed; $('speedVal').textContent = S.speed;
     $('speedLabel').textContent = '×' + S.speed;
-    save();
+    save(); updateSummary();
   }
   function setFont(v) {
     const ratio = pos / Math.max(1, textEl.offsetHeight);
     S.fontSize = Math.max(24, Math.min(140, v));
     $('fontSize').value = S.fontSize; $('fontVal').textContent = S.fontSize + 'px';
-    save(); applyStyle();
+    save(); applyStyle(); updateSummary();
     pos = ratio * textEl.offsetHeight; render();
   }
 
@@ -582,16 +683,19 @@
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   }
 
-  $('startBtn').onclick = () => openPrompter(false);
-  $('startCamBtn').onclick = () => openPrompter(true);
-  // One tap: camera + countdown + recording + scrolling together
-  $('startRecBtn').onclick = async () => { await openPrompter(true); if (camStream) startRecording(); };
+  // Single start button: the chosen mode decides camera / recording, the chip adds voice tracking
+  $('startBtn').onclick = async () => {
+    await openPrompter(S.mode !== 'text');
+    if (!prompter.classList.contains('active')) return;
+    if (S.mode === 'record' && camStream) startRecording();
+    if (S.voiceStart) startVoice();
+  };
   $('exitBtn').onclick = closePrompter;
   $('playBtn').onclick = e => { e.stopPropagation(); toggle(); };
   $('restartBtn').onclick = () => { pos = 0; voiceIndex = 0; voiceTarget = 0; wordEls.forEach(w => w.classList.remove('read')); render(); };
   $('slowerBtn').onclick = () => setSpeed(S.speed - 0.5);
   $('fasterBtn').onclick = () => setSpeed(S.speed + 0.5);
-  $('mirrorBtn').onclick = () => { S.mirrorX = !S.mirrorX; $('mirrorX').checked = S.mirrorX; save(); applyStyle(); };
+  $('mirrorBtn').onclick = () => { S.mirrorX = !S.mirrorX; $('mirrorX').checked = S.mirrorX; save(); applyStyle(); updateSummary(); };
   $('fullBtn').onclick = () => {
     if (document.fullscreenElement) document.exitFullscreen();
     else if (prompter.requestFullscreen) prompter.requestFullscreen().catch(() => toast('מסך מלא אינו נתמך במכשיר זה'));
@@ -776,7 +880,7 @@
     };
     recog.onend = () => { if (voiceOn) { try { recog.start(); } catch (e) {} } };
     try { recog.start(); } catch (e) {}
-    if (!playing) play();
+    if (!playing && !countdownTimer) play();
   }
   function stopVoice() {
     voiceOn = false; voiceTarget = null;
@@ -870,7 +974,7 @@
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
-    $('installBtn').style.display = 'inline-block';
+    $('installBtn').style.display = 'inline-flex';
   });
   $('installBtn').onclick = async () => {
     if (!deferredPrompt) return;
