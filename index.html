@@ -807,7 +807,14 @@
   // ---------- Recording ----------
   let recorder = null, chunks = [], recStart = 0, recTimer = null, recUrl = null;
   function pickMime() {
-    const types = ['video/mp4;codecs=avc1,mp4a', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+    // MP4 only with AAC audio: Chrome's default MP4 uses Opus audio, which phone galleries and most
+    // players can't play (silent video). Otherwise WebM, which Android plays with sound. Plain MP4 last
+    // for Safari/iPhone, where it means H.264 + AAC.
+    const types = [
+      'video/mp4;codecs="avc1.42E01E,mp4a.40.2"', 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2',
+      'video/webm;codecs=vp8,opus', 'video/webm;codecs=vp9,opus', 'video/webm',
+      'video/mp4'
+    ];
     return types.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
   }
   async function startRecording() {

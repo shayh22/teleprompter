@@ -1,5 +1,5 @@
 // Bump the version whenever the app files change so installed copies pick up the update.
-const CACHE_NAME = 'teleprompter-cache-v7';
+const CACHE_NAME = 'teleprompter-cache-v8';
 const urlsToCache = [
   './',
   './index.html',
